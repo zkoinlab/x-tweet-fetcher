@@ -305,3 +305,52 @@ python3 scripts/tweet_growth_cli.py --report 123456789 --cross
 - **Chinese platforms**: Camofox renders JS → extracts content
 - **Google search**: Camofox opens Google → parses results
 - **X-Tracker**: FxTwitter API + derivative detection + burst confirmation
+
+---
+
+## ⚠️ Gotchas (Our Enhancements)
+
+常见问题与解决方案（持续更新）：
+
+| # | 问题 | 触发条件 | 解决方案 |
+|---|------|----------|----------|
+| 1 | **推文为空** (`text: ""`) | X Article 长文，正文在 `article.full_text` 字段 | 检查 `is_article` 字段，从 `tweet.article.full_text` 获取全文 |
+| 2 | **API 超时** | FxTwitter 服务波动或网络问题 | 重试 2-3 次，或检查代理配置 (`export HTTPS_PROXY=http://192.168.8.1:7897`) |
+| 3 | **推文不存在** | 推文被删除、账号私有、或 URL 错误 | 确认 URL 格式正确，检查账号是否公开，私密账号无法获取 |
+| 4 | **统计数据缺失** | 新推文或 FxTwitter 解析限制 | `likes/retweets/views` 可能为 0 或 null，不影响正文获取 |
+| 5 | **语言字段为空** (`lang: null`) | 部分推文无语言标识 | 不依赖 `lang` 字段，用 `text` 内容自行判断 |
+| 6 | **无法获取回复链** | 技能设计中移除了回复抓取功能 | 仅 `replies_count` 可用，需用 Camofox 抓取回复内容 |
+| 7 | **长文章截断** | 极长 X Article 可能部分截断 | 检查 `word_count` 和 `char_count`，异常时换用浏览器方案 |
+| 8 | **FxTwitter 服务下线** | 第三方服务不可用 | 无 fallback，需切换到 Camofox 直接抓取 X 页面 |
+
+**最近更新时间：** 2026-03-19
+
+---
+
+## ✅ Verification (Our Checklist)
+
+验证本技能输出质量的检查清单：
+
+### 快速验证 (10 秒)
+```bash
+# 测试单条推文
+python3 scripts/fetch_tweet.py --url "https://x.com/elonmusk/status/123456" --text-only
+```
+
+### 验证要点
+- [ ] 返回 JSON 结构完整（url/username/tweet_id 非空）
+- [ ] 推文内容获取正确（`text` 或 `article.full_text` 非空）
+- [ ] 统计数据合理（likes/retweets ≥ 0）
+- [ ] 响应时间 < 5 秒
+
+### 故障排查
+```bash
+# 1. 检查代理
+curl -I https://api.fxtwitter.com/status/123456
+
+# 2. 测试 FxTwitter 可用性
+curl -s https://api.fxtwitter.com/status/1728852245558890949 | head -50
+
+# 3. 查看详细错误
+python3 scripts/fetch_tweet.py --url "YOUR_URL" --pretty 2>&1
+```
